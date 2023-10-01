@@ -1,45 +1,24 @@
-stages:
-  - build
-  - deploy
+name: Deploy to Firebase
 
-variables:
-  FIREBASE_PROJECT_ID: "componentchecklist"
-  CI_NODE_IMAGE: "node:16"
+on:
+  push:
+    branches:
+      - main # Deploy when changes are pushed to the main branch
 
-cache:
-  key: "node_modules"
-  paths:
-    - node_modules/
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
 
-before_script:
-  - echo "Setting up..."
-  - npm ci --cache .npm --prefer-offline
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-install_dependencies:
-  image: $CI_NODE_IMAGE
-  stage: build
-  script:
-    - npm install
+      - name: Install Firebase CLI
+        run: |
+          npm install -g firebase-tools
 
-build_project:
-  image: $CI_NODE_IMAGE
-  stage: build
-  script:
-    - CI=false npm run build
-  artifacts:
-    paths:
-      - build/
-
-deploy_to_firebase:
-  image: $CI_NODE_IMAGE
-  stage: deploy
-  before_script:
-    - npm install -g firebase-tools
-  script:
-    - firebase use --token $FIREBASE_TOKEN $FIREBASE_PROJECT_ID --debug
-    - firebase deploy --only hosting --token $FIREBASE_TOKEN
-  only:
-    - frontend-fix
-    - dev
-
-
+      - name: Deploy to Firebase Hosting
+        run: |
+          firebase deploy --token $FIREBASE_TOKEN --non-interactive
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }} # Set up a secret in your GitHub repository containing your Firebase token
